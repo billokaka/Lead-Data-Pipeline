@@ -12,8 +12,7 @@ import { makeSpender } from '../src/money.mjs';
 import { runUntilIdle, decideOwners, runOnce } from '../src/worker.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = join(here, '..', '..', '..', '..', '..');
-const SQL_BASE = join(repo, 'workflows', 'blueprints', 'icp-database-v1-run-in-supabase.sql');
+const SQL_BASE = join(here, '..', '..', 'sql', 'icp-database-v1-run-in-supabase.sql');
 const SQL_V13 = join(here, '..', '..', 'sql', 'v1.3-enrichment.sql');
 
 // ---- the made-up town ------------------------------------------------------------------------------------

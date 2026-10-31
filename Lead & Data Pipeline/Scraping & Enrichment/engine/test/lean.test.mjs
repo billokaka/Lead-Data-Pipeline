@@ -10,7 +10,6 @@ import { runOnce } from '../src/worker.mjs';
 import { leanExtract, categoryMatches } from '../src/stages.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = join(here, '..', '..', '..', '..', '..');
 const plumbing = { name: 'Plumbing', description: 'Plumbing contractors' };
 
 test('the extract keeps the page top and the owner and chain lines, as exact stretches of the page, within the cap', () => {
@@ -38,7 +37,7 @@ test('a Google category matches the trade by its stem, but never a supplier or s
 async function freshDb() {
   const pg = new PGlite();
   await pg.exec('create role anon; create role authenticated;');
-  await pg.exec(readFileSync(join(repo, 'workflows', 'blueprints', 'icp-database-v1-run-in-supabase.sql'), 'utf8'));
+  await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'icp-database-v1-run-in-supabase.sql'), 'utf8'));
   await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.3-enrichment.sql'), 'utf8'));
   return fromPglite(pg);
 }
