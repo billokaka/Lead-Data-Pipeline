@@ -1,0 +1,19 @@
+# Project/: what never goes to GitHub, whoever commits (keys, contact data, the engine's working files)
+.env
+.env.*
+!.env.example
+*.crt
+*.pem
+*.key
+node_modules/
+
+# lists with people's names and emails, and the engine's per-list working files
+*.csv
+*.csv.part
+*.xlsx
+*.xls
+*.jsonl
+**/Task/
+**/Results/*
+!**/Results/READ-ME-FIRST.md
+runstatus.last.json
