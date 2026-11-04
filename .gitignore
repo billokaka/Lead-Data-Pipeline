@@ -17,3 +17,7 @@ node_modules/
 **/Results/*
 !**/Results/READ-ME-FIRST.md
 runstatus.last.json
+
+# the engine's reference lists (MX providers, parking hosts, disposable domains): public domain names only, and the
+# engine cannot run without them. The workspace's "data/" rule is for prospect data, not these.
+!Lead & Data Pipeline/Scraping & Enrichment/engine/data/

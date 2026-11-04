@@ -3,10 +3,11 @@
 // and every write is fenced on the lease (stages.mjs), so no two workers act on the same row.
 // v1.1, 2026-10-29, after the reviewer's attack.
 
-import { runSource, runSiteRead, runOwner, runEmail, runVerify, LostLease } from './stages.mjs';
+import { runSource, runDomainCheck, runSiteRead, runOwner, runEmail, runVerify, LostLease } from './stages.mjs';
 import { SpendRefused } from './money.mjs';
 
 export const STEPS = [
+  { name: 'domain check', table: 'companies', stage: 'to_check_domain', run: runDomainCheck },
   { name: 'site read', table: 'companies', stage: 'to_read', run: runSiteRead },
   { name: 'owner', table: 'companies', stage: 'to_find_owner', run: runOwner },
   { name: 'email', table: 'people', stage: 'to_find_email', run: runEmail },

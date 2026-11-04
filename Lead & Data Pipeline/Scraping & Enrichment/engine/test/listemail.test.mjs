@@ -194,3 +194,15 @@ test('the Kitt second pass: only rows left without an email, once each; a find g
   await runList({ input, outDir: out, limit: 100, providers: withKitt, jobId: 3, states, concurrency: 1, kitt: true });
   assert.deepEqual(kittCalls, [], 'a row is tried by Kitt once only');
 });
+
+test('a dead website domain costs nothing paid: only the free Leadocean look-up runs, then dead_domain', async () => {
+  const { dir, input } = setup();
+  writeFileSync(input, [HEAD, `Ted,Te,,https://linkedin.com/in/ted,${OH},Te Co,Owner,deadco.com,`, `Jim,Lo,,https://linkedin.com/in/jim,${OH},Lo HVAC,Owner,lohvac.com,`].join('\n'));
+  const calls = [];
+  const domains = { check: async (d) => ({ domain: d, verdict: d === 'deadco.com' ? 'dead' : 'alive', reason: 'the domain does not exist' }) };
+  const r = await runList({ input, outDir: join(dir, 'out'), limit: 10, providers: fakes(calls), jobId: 1, states, concurrency: 1, domains });
+  const { f } = read(r.out);
+  assert.equal(f(0, 'email_status'), 'dead_domain'); assert.match(f(0, 'enrich_note'), /takes no mail/);
+  assert.equal(f(1, 'email_status'), 'verified');
+  assert.deepEqual(calls.filter((c) => c.includes('deadco') || c.includes('/ted')), ['leadocean:https://linkedin.com/in/ted'], 'nothing paid for the dead domain');
+});

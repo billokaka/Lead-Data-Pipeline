@@ -8,6 +8,7 @@
 
 import { decideOwner, ownSiteEmailFor, patterns, isFreemail, isRoleAddress, looksLikeEmail, normEmail, splitName, verdict, ownerRole, normName } from './rules.mjs';
 import { SpendRefused } from './money.mjs';
+import { makeDomainChecker } from './domaincheck.mjs';
 
 const LEASE_SECONDS = 1800;
 const ID = { companies: 'company_id', people: 'person_id' };
@@ -68,13 +69,38 @@ export async function runSource(ctx, job) {
   }
   const loaded = await db.query('select * from load_imports_locked($1)', ['other']);
   const applied = await db.one('select apply_job_imports($1) as n', [job.job_id]);
-  // the new companies start the pipeline; set here so a hand import does not
-  await db.query(`update companies set enrichment_stage = 'to_read' where last_job_id = $1 and enrichment_stage = 'not_queued'`, [job.job_id]);
+  // the new companies start the pipeline at the domain check (free DNS before any spend); set here so a hand import does not
+  await db.query(`update companies set enrichment_stage = 'to_check_domain' where last_job_id = $1 and enrichment_stage in ('not_queued', 'to_read')`, [job.job_id]);
   const progress = { rows_found: added, loaded, companies_updated: applied?.n ?? 0, ...(stopped ? { stopped } : {}) };
   // fenced: a paused or cancelled job, or one another worker took, is not marked done
   await db.query(`update enrichment_jobs set status = 'done', finished_at = now(), progress = $3, claimed_by = null, claimed_until = null
     where job_id = $1 and claimed_by = $2 and status = 'running'`, [job.job_id, ctx.worker, progress]);
   return progress;
+}
+
+// ---- 1b. domain check: free DNS before any money (2026-11-03). A dead domain (no DNS, refused, parked, null MX, no
+// MX, the mail host gone) ends here as dead_domain; anything else goes on to the website read. A live, non-gateway
+// domain also gets its catch-all answer (one paid probe, cached 21 days), so the email step never pays for it again
+export async function runDomainCheck(ctx, c) {
+  if (!(await hold(ctx, 'companies', c.company_id))) return;
+  const d = c.website_domain;
+  if (!d) return write(ctx, 'companies', c.company_id, { enrichment_stage: 'to_read', stage_note: 'no website: the domain was not checked' });
+  ctx.domains ??= makeDomainChecker({ db: ctx.db });
+  const f = await ctx.domains.check(d);
+  if (f.verdict === 'dead') return write(ctx, 'companies', c.company_id, { enrichment_stage: 'dead_domain', stage_note: `domain: ${f.reason}` });
+  if (f.verdict === 'alive' && ctx.providers?.isCatchAll) {
+    try { await ctx.domains.catchAll(d, { providers: ctx.providers, jobId: c.last_job_id }); }
+    catch (e) { if (!(e instanceof SpendRefused)) throw e; }          // no money for the probe: the email step asks later
+  }
+  return write(ctx, 'companies', c.company_id, { enrichment_stage: 'to_read', stage_note: f.verdict === 'alive' ? null : `domain ${f.verdict}: ${f.reason}` });
+}
+
+// a fresh catch-all answer from the domain cache, or null (no table yet, no row, or out of date)
+async function cachedCatchAll(db, domain) {
+  try {
+    const r = await db.one('select is_catch_all from email_domains where domain = $1 and catch_all_expires_at > now()', [domain]);
+    return typeof r?.is_catch_all === 'boolean' ? r.is_catch_all : null;
+  } catch { return null; }
 }
 
 // ---- 2. site read: the firm's own pages, the fit answers with quotes, owner names, every email printed ---------
@@ -268,8 +294,10 @@ export async function runEmail(ctx, p) {
   // c. the verified-pattern lane: never on a catch-all domain; the first pattern verifier A calls valid
   const list = patterns(name, domain);
   if (!list.length) return set({}, 'no_email', domain ? 'no surname for patterns' : 'no company domain');
-  let catchAll;
-  try { catchAll = await providers.isCatchAll({ domain, ...meta }); } catch (e) { if (e instanceof SpendRefused) return waiting(e); throw e; }
+  let catchAll = await cachedCatchAll(db, domain);
+  if (catchAll === null) {
+    try { catchAll = await providers.isCatchAll({ domain, ...meta }); } catch (e) { if (e instanceof SpendRefused) return waiting(e); throw e; }
+  }
   if (catchAll === true) return set({ email_catch_all: true }, 'needs_review', 'catch-all domain: patterns cannot be checked');
   if (catchAll !== false) return set({}, 'needs_review', 'could not tell whether the domain is catch-all');
   for (const email of list) {

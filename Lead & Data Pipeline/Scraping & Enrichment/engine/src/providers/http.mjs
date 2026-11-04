@@ -13,6 +13,7 @@ const BASES = {
   leadocean: 'https://api.leadocean.io',
   lemlist: 'https://api.lemlist.com',
   smartlead: 'https://prospect-api.smartlead.ai',
+  serper: 'https://google.serper.dev',
   openrouter: 'https://openrouter.ai',
   anthropic: 'https://api.anthropic.com',
 };
@@ -105,6 +106,43 @@ function getOnce(u, { timeoutMs, allowLoopback }) {
     req.on('error', () => resolve(null));
     req.end();
   });
+}
+
+// is the firm's website there at all (the domain pre-filter, 2026-11-03)? Unlike fetchSitePage it keeps the answer
+// it got: the status, where redirects ended, the start of the page. A refused connection or a timeout is
+// { status: 0 }; a bot wall (401, 403, 429, 503) is reported as such, never as "down". Public addresses only.
+function statusOnce(u, { timeoutMs }) {
+  return new Promise((resolve) => {
+    const mod = u.protocol === 'https:' ? https : http;
+    const req = mod.request(u, { method: 'GET', timeout: timeoutMs, lookup: guardedLookup,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WraithResearch/1.0)', Accept: 'text/html,application/xhtml+xml' } }, (res) => {
+      const status = res.statusCode ?? 0;
+      if (status >= 300 && status < 400 && res.headers.location) { res.resume(); return resolve({ status, redirect: res.headers.location }); }
+      const chunks = []; let size = 0;
+      res.on('data', (c) => { size += c.length; chunks.push(c); if (size > 65536) res.destroy(); });
+      res.on('close', () => resolve({ status, server: String(res.headers.server ?? ''), html: Buffer.concat(chunks).toString('utf8').slice(0, 65536) }));
+      res.on('error', () => resolve({ status, html: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', (e) => resolve({ status: 0, error: String(e.code ?? e.message) }));
+    req.end();
+  });
+}
+export async function probeSite(domain, { timeoutMs = 8000 } = {}) {
+  let last = null;
+  for (const scheme of ['https', 'http']) {
+    let u;
+    try { u = new URL(`${scheme}://${domain}/`); } catch { return { status: 0, error: 'bad url' }; }
+    for (let hop = 0; hop < 5; hop++) {
+      if (!(await isPublicHost(u.hostname))) return { status: 0, error: 'not a public address', finalUrl: u.href };
+      const r = await statusOnce(u, { timeoutMs });
+      if (r.redirect) { try { u = new URL(r.redirect, u); } catch { break; } continue; }
+      last = { ...r, finalUrl: u.href };
+      break;
+    }
+    if (last && last.status) return last;
+  }
+  return last ?? { status: 0, error: 'no answer' };
 }
 
 // fetches one page of a company's site; null when it can't be read. Redirects are followed only to public addresses.

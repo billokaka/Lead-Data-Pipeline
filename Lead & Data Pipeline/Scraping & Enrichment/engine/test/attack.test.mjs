@@ -21,6 +21,7 @@ const fresh = async (setup = '') => {
   await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'icp-database-v1-run-in-supabase.sql'), 'utf8'));
   if (setup) await pg.exec(setup);
   await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.3-enrichment.sql'), 'utf8'));
+  await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.4-domains.sql'), 'utf8'));
   return fromPglite(pg);
 };
 before(async () => { db = await fresh(`insert into companies (company_name, website, state_code, industry_code) values ('Hand Co','handco.com','MA','hvac');

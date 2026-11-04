@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 const NAMES = ['SUPABASE_DB_URL', 'SUPABASE_DB_CA_FILE', 'TREG_API_KEY', 'APOLLO_API_KEY', 'LEADOCEAN_API_KEY', 'LEMLIST_API_KEY',
   'OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY', 'ENRICH_PERSON', 'ENRICH_ALLOW_SPEND', 'ENRICH_SITE_MODEL', 'ENRICH_BATCH',
   'ENRICH_MAX_JOB_USD', 'ENRICH_TEST_BASE_URL', 'ENRICH_DB_INSECURE_TLS', 'ENRICH_APOLLO_CREDIT_USD', 'ENRICH_CONCURRENCY', 'ENRICH_MODEL_IN_USD_PER_M', 'ENRICH_MODEL_OUT_USD_PER_M',
-  'SMARTLEAD_API_KEY', 'ENRICH_SMARTLEAD_USD_PER_FIND'];
+  'SMARTLEAD_API_KEY', 'ENRICH_SMARTLEAD_USD_PER_FIND', 'ENRICH_VALUE_FACT_MODEL', 'SERPER_API_KEY'];
 
 function fromFile(path) {
   const out = {};
@@ -47,6 +47,7 @@ export function loadConfig(env = process.env) {
       leadocean: get('LEADOCEAN_API_KEY') || null,
       lemlist: get('LEMLIST_API_KEY') || null,
       smartlead: get('SMARTLEAD_API_KEY') || null,
+      serper: get('SERPER_API_KEY') || null,
       openrouter: get('OPENROUTER_API_KEY') || null,
       anthropic: get('ANTHROPIC_API_KEY') || null,
     }),
@@ -58,6 +59,8 @@ export function loadConfig(env = process.env) {
     modelInUsdPerM: num('ENRICH_MODEL_IN_USD_PER_M', 1, 0, 100),
     modelOutUsdPerM: num('ENRICH_MODEL_OUT_USD_PER_M', 5, 0, 500),
     apolloCreditUsd: num('ENRICH_APOLLO_CREDIT_USD', 0.01, 0, 10),
+    // the value-fact line's model (operator, 2026-11-01: Haiku 5.5)
+    valueFactModel: get('ENRICH_VALUE_FACT_MODEL') || 'anthropic/claude-haiku-5.5',
     // Smartlead's SmartProspect does not publish a price per found email: [assumed] until set from the plan
     smartleadFindUsd: num('ENRICH_SMARTLEAD_USD_PER_FIND', 0.01, 0, 10),
     concurrency: num('ENRICH_CONCURRENCY', 4, 1, 16),

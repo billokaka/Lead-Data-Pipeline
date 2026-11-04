@@ -54,7 +54,7 @@ done twice.
    Download certificate. Save it (for example as `D:/With_Abdullah/supabase-ca.crt`, outside the
    repository) and put that path in `SUPABASE_DB_CA_FILE`. Without it the engine refuses to
    connect, so nobody on the network can pass themselves off as the database.
-4. **Install:** in `engine/`, run `npm install`, then `npm test` (49 tests; nothing real is
+4. **Install:** in `engine/`, run `npm install`, then `npm test` (83 tests; nothing real is
    touched).
 5. **Connect Claude:** the workspace's `.mcp.json` has the `enrichment` server. Restart Claude
    Code and approve it. For Claude Desktop, see `engine/README-claude-desktop.md`.
@@ -152,6 +152,34 @@ node src/cli.mjs email-list "<the list.csv>" "<the Results folder>" <rows> <max 
 - **Writes to Supabase:** only the job row and its costs rows (the budgets need them), never a contact.
 - **The first test (2026-10-29, 50 rows):** 13 verified (26%), 18 catch-all, about $0.02 a row, $0.08 per verified
   email. [inferred, a small sample]
+
+## The domain pre-filter: dead companies out before any spend (D9-9)
+
+Free DNS checks every company domain before any paid step. A dead domain costs nothing:
+- **`dead`:** the domain doesn't exist, its DNS refuses, it's parked, it has a null MX, it has no MX and no address,
+  or its mail host is gone;
+- **`weak`:** no MX, only a website. It's kept and flagged;
+- **`alive`:** it takes mail;
+- **`unknown`:** DNS didn't answer, or the "website" is a Facebook or Wix page.
+
+A dead answer must come from both resolvers (1.1.1.1 and 8.8.8.8). Each result is cached in Supabase (`email_domains`,
+once `sql/v1.4-domains.sql` is run).
+
+```
+node src/cli.mjs domain-check "<list.csv>"                      free: adds the verdict columns; writes -alive and -removed
+node src/cli.mjs domain-check "<list.csv>" --catch-all <max $>  also one paid catch-all probe per live, non-gateway domain
+node src/cli.mjs verify-list "<list.csv>" <max $>               checks the addresses a list already has
+```
+
+- **In Claude:** "check the domains of this list" (`enrich_check_domains`).
+- **In the pipeline:** new companies pass `to_check_domain` before the website read, and a dead one stops at
+  `dead_domain`.
+- **In `email-list`:** a dead website domain gets only the free Leadocean look-up.
+- **The tables** are in `engine/data/` (providers and gateways, parking services, typos, disposable domains). Refresh
+  the disposable list weekly with `node scripts/refresh-disposable.mjs`.
+- **Measured** (2026-11-03): 15,144 domains in about 4 minutes, at $0.
+- **Not here yet:** the own SMTP probe server, which needs a dedicated port-25 server
+  (`Building the Verifier Stage-by-Stage Plan.docx`, stages 3 to 7).
 
 ## What it doesn't do
 

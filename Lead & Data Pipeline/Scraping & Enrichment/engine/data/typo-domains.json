@@ -1,0 +1,12 @@
+{
+  "_note": "Common misspellings of mail domains -> the likely meant domain. A match sets did_you_mean; the address itself is never changed.",
+  "typos": {
+    "gmal.com": "gmail.com", "gmial.com": "gmail.com", "gnail.com": "gmail.com", "gmaill.com": "gmail.com", "gmail.co": "gmail.com",
+    "gmail.cm": "gmail.com", "gamil.com": "gmail.com", "gmai.com": "gmail.com", "gmail.con": "gmail.com", "gmail.om": "gmail.com",
+    "hotmal.com": "hotmail.com", "hotmial.com": "hotmail.com", "hotmai.com": "hotmail.com", "hotmail.co": "hotmail.com", "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com", "outllook.com": "outlook.com", "outlook.co": "outlook.com", "outlook.con": "outlook.com",
+    "yaho.com": "yahoo.com", "yahooo.com": "yahoo.com", "yahoo.co": "yahoo.com", "yahoo.con": "yahoo.com", "yhoo.com": "yahoo.com",
+    "icloud.co": "icloud.com", "iclod.com": "icloud.com", "icoud.com": "icloud.com",
+    "aol.co": "aol.com", "aoll.com": "aol.com", "comcast.com": "comcast.net", "verizon.com": "verizon.net", "att.com": "att.net"
+  }
+}

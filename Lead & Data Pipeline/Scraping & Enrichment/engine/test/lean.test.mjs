@@ -39,6 +39,7 @@ async function freshDb() {
   await pg.exec('create role anon; create role authenticated;');
   await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'icp-database-v1-run-in-supabase.sql'), 'utf8'));
   await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.3-enrichment.sql'), 'utf8'));
+  await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.4-domains.sql'), 'utf8'));
   return fromPglite(pg);
 }
 

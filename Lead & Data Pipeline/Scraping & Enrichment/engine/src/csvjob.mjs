@@ -136,7 +136,7 @@ export async function importList(db, plan, { jobId, tool, industryCode, person }
   }
   // queue only what is not done: a new firm starts at the website step; one where no owner was found goes back to the owner step
   const q = await db.query(`update companies c set last_job_id = $2, industry_code = coalesce(c.industry_code, $3),
-      enrichment_stage = case when c.enrichment_stage = 'not_queued' then 'to_read' else 'to_find_owner' end, stage_note = null
+      enrichment_stage = case when c.enrichment_stage = 'not_queued' then 'to_check_domain' else 'to_find_owner' end, stage_note = null
     where c.company_id = any($1) and (c.enrichment_stage = 'not_queued'
       or (c.enrichment_stage = 'no_owner_found' and exists (select 1 from people p where p.company_id = c.company_id and p.last_job_id = $2)))
     returning company_id`, [[...companyIds], jobId, industryCode]);

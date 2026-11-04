@@ -1,0 +1,205 @@
+{
+  "_note": "MX hostname suffix -> who runs the domain's mail. gateway = a security filter in front of the real system: it accepts everything at the door, so it looks catch-all from outside (How Email Actually Works, ch. 2 and 4). The first match wins; order matters. Forwarding services (Cloudflare Email Routing, ImprovMX, Forward Email) are marked gateway too: they accept for any name and pass it on, so a probe says nothing.",
+  "providers": [
+    {
+      "suffix": "aspmx.l.google.com",
+      "provider": "google_workspace",
+      "gateway": false
+    },
+    {
+      "suffix": "googlemail.com",
+      "provider": "google_workspace",
+      "gateway": false
+    },
+    {
+      "suffix": "smtp.google.com",
+      "provider": "google_workspace",
+      "gateway": false
+    },
+    {
+      "suffix": "google.com",
+      "provider": "google_workspace",
+      "gateway": false
+    },
+    {
+      "suffix": "mail.protection.outlook.com",
+      "provider": "microsoft_365",
+      "gateway": false
+    },
+    {
+      "suffix": "mx.microsoft",
+      "provider": "microsoft_365",
+      "gateway": false
+    },
+    {
+      "suffix": "outlook.com",
+      "provider": "microsoft_365",
+      "gateway": false
+    },
+    {
+      "suffix": "pphosted.com",
+      "provider": "proofpoint",
+      "gateway": true
+    },
+    {
+      "suffix": "ppe-hosted.com",
+      "provider": "proofpoint",
+      "gateway": true
+    },
+    {
+      "suffix": "proofpoint.com",
+      "provider": "proofpoint",
+      "gateway": true
+    },
+    {
+      "suffix": "mimecast.com",
+      "provider": "mimecast",
+      "gateway": true
+    },
+    {
+      "suffix": "mimecast-offshore.com",
+      "provider": "mimecast",
+      "gateway": true
+    },
+    {
+      "suffix": "barracudanetworks.com",
+      "provider": "barracuda",
+      "gateway": true
+    },
+    {
+      "suffix": "cudamail.com",
+      "provider": "barracuda",
+      "gateway": true
+    },
+    {
+      "suffix": "iphmx.com",
+      "provider": "cisco",
+      "gateway": true
+    },
+    {
+      "suffix": "hydra.sophos.com",
+      "provider": "sophos",
+      "gateway": true
+    },
+    {
+      "suffix": "tmes.trendmicro.com",
+      "provider": "trend_micro",
+      "gateway": true
+    },
+    {
+      "suffix": "mailcontrol.com",
+      "provider": "forcepoint",
+      "gateway": true
+    },
+    {
+      "suffix": "arsmtp.com",
+      "provider": "zix",
+      "gateway": true
+    },
+    {
+      "suffix": "spamh.com",
+      "provider": "spam_hero",
+      "gateway": true
+    },
+    {
+      "suffix": "mxrecord.io",
+      "provider": "mx_guarddog",
+      "gateway": true
+    },
+    {
+      "suffix": "messagelabs.com",
+      "provider": "symantec_messagelabs",
+      "gateway": true
+    },
+    {
+      "suffix": "mx.cloudflare.net",
+      "provider": "cloudflare_routing",
+      "gateway": true
+    },
+    {
+      "suffix": "improvmx.com",
+      "provider": "improvmx",
+      "gateway": true
+    },
+    {
+      "suffix": "forwardemail.net",
+      "provider": "forward_email",
+      "gateway": true
+    },
+    {
+      "suffix": "mailroute.net",
+      "provider": "mailroute",
+      "gateway": true
+    },
+    {
+      "suffix": "appriver.com",
+      "provider": "appriver",
+      "gateway": true
+    },
+    {
+      "suffix": "mailanyone.net",
+      "provider": "fusemail",
+      "gateway": true
+    },
+    {
+      "suffix": "electric.net",
+      "provider": "electric_mail",
+      "gateway": true
+    },
+    {
+      "suffix": "mxthunder.com",
+      "provider": "spam_hero",
+      "gateway": true
+    },
+    {
+      "suffix": "zoho.com",
+      "provider": "zoho",
+      "gateway": false
+    },
+    {
+      "suffix": "zohomail.com",
+      "provider": "zoho",
+      "gateway": false
+    },
+    {
+      "suffix": "yahoodns.net",
+      "provider": "yahoo",
+      "gateway": false
+    },
+    {
+      "suffix": "messagingengine.com",
+      "provider": "fastmail",
+      "gateway": false
+    },
+    {
+      "suffix": "secureserver.net",
+      "provider": "godaddy",
+      "gateway": false
+    },
+    {
+      "suffix": "emailsrvr.com",
+      "provider": "rackspace",
+      "gateway": false
+    },
+    {
+      "suffix": "ionos.com",
+      "provider": "ionos",
+      "gateway": false
+    },
+    {
+      "suffix": "1and1.com",
+      "provider": "ionos",
+      "gateway": false
+    },
+    {
+      "suffix": "registrar-servers.com",
+      "provider": "namecheap",
+      "gateway": false
+    },
+    {
+      "suffix": "icloud.com",
+      "provider": "icloud",
+      "gateway": false
+    }
+  ]
+}

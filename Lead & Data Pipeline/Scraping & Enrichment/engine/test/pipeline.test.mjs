@@ -74,10 +74,14 @@ before(async () => {
   await pg.exec('create role anon; create role authenticated;');
   await pg.exec(readFileSync(SQL_BASE, 'utf8'));
   await pg.exec(readFileSync(SQL_V13, 'utf8'));
+  await pg.exec(readFileSync(join(here, '..', '..', 'sql', 'v1.4-domains.sql'), 'utf8'));
   db = fromPglite(pg);
   const config = { person: 'Tester', batch: 25, allowSpend: true, secrets: () => [] };
   const paid = makeSpender({ db, config });
-  ctx = { db, config, providers: fakeProviders(paid), log: () => {}, redact: (s) => s };
+  // the made-up town's domains all take mail: a fake DNS (the real one would call them dead), cached in the real table
+  const { makeDomainChecker } = await import('../src/domaincheck.mjs');
+  const fakeQuery = async (type, name) => (type === 'MX' ? { code: 'ok', answers: [{ exchange: 'aspmx.l.google.com', priority: 1 }] } : type === 'A' ? { code: 'ok', answers: ['1.2.3.4'] } : { code: 'nodata', answers: [] });
+  ctx = { db, config, providers: fakeProviders(paid), log: () => {}, redact: (s) => s, domains: makeDomainChecker({ db, query: fakeQuery, withAge: false }) };
   await db.query(`update budgets set daily_usd = 100 where provider = 'total'`);
   // a shop in a hold state, already in the table: it must never be worked
   await db.query(`insert into companies (company_name, website, state_code, industry_code) values ('Gus Plumbing','gusplumb.com','CA','plumbing')`);

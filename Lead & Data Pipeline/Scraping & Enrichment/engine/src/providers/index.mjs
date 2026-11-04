@@ -246,6 +246,50 @@ export function makeProviders({ config, paid }) {
     smartleadStatus: () => smartleadOff,
     apolloStatus: () => apolloOff,
 
+    // the value-fact line (operator, 2026-11-01): Haiku 5.5 with the value-fact prompt as the system message, one row
+    // as the user message; JSON back. Through OpenRouter unless an Anthropic key is set. Haiku 5.5 reasons before it
+    // answers: low effort and room for 2,500 tokens, or the reasoning eats the answer (the first test: 177 of 200 empty)
+    async valueFact({ system, user, jobId }) {
+      if (!config.keys.anthropic && !config.keys.openrouter) throw new SpendRefused('no model key for the value fact (set OPENROUTER_API_KEY or ANTHROPIC_API_KEY)');
+      const direct = Boolean(config.keys.anthropic);
+      return paid({ provider: direct ? 'anthropic' : 'openrouter', step: 'value_fact', estUsd: 0.001, jobId }, async () => {
+        if (direct) {
+          const r = await call(`${baseUrl(config, 'anthropic')}/v1/messages`, { method: 'POST', headers: { 'x-api-key': config.keys.anthropic, 'anthropic-version': '2023-06-01' },
+            body: { model: config.valueFactModel.replace(/^anthropic\//, '').replace('haiku-5.5', 'haiku-5-5'), max_tokens: 2500, system, messages: [{ role: 'user', content: user }] } });
+          if (r.status >= 400) throw new HttpError(r.status, `the model answered ${r.status}: ${short(r.body)}`);
+          const u = r.body?.usage ?? {};
+          return { result: parseJson((r.body?.content ?? []).map((c) => c.text ?? '').join('')), usd: ((u.input_tokens ?? 0) * 0.1 + (u.output_tokens ?? 0) * 0.5) / 1e6 };
+        }
+        const r = await call(`${baseUrl(config, 'openrouter')}/api/v1/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${config.keys.openrouter}` },
+          body: { model: config.valueFactModel, max_tokens: 2500, reasoning: { effort: 'low' }, messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+            response_format: { type: 'json_object' }, usage: { include: true } } });
+        if (r.status >= 400) throw new HttpError(r.status, `the model answered ${r.status}: ${short(r.body)}`);
+        return { result: parseJson(r.body?.choices?.[0]?.message?.content ?? ''), usd: num(r.body?.usage?.cost) ?? undefined };
+      });
+    },
+
+    // does Google know the site? A site: search through treg Serper (about $0.001); used only where the free
+    // Common Crawl check has never seen the domain (operator, 2026-11-03)
+    // With SERPER_API_KEY, Serper is called directly: its sign-up credits (2,500 searches) cost nothing, so they are
+    // logged at $0 under provider 'serper'; without it, through treg (paid per search)
+    async googleIndexed({ domain, jobId }) {
+      if (config.keys.serper) {
+        return paid({ provider: 'serper', step: 'google_index', estUsd: 0, jobId }, async () => {
+          const r = await politely(() => call(`${baseUrl(config, 'serper')}/search`, { method: 'POST', headers: { 'X-API-KEY': config.keys.serper }, body: { q: `site:${domain}`, num: 10, gl: 'us' } }));
+          if (r.status === 401 || r.status === 403) throw new HttpError(r.status, 'Serper refused the key (or the free credits are used up): check SERPER_API_KEY and the Serper dashboard');
+          if (r.status >= 400) throw new HttpError(r.status, `Serper answered ${r.status}: ${short(r.body)}`, r.body);
+          const hits = rowsOf(r.body, ['organic']);
+          return { result: { indexed: hits.length > 0, results: hits.length }, usd: 0 };
+        });
+      }
+      if (!config.keys.treg) return null;
+      return paid({ provider: 'treg', step: 'google_index', estUsd: 0.001, jobId }, async () => {
+        const r = await treg('serper.web.search', { body: { q: `site:${domain}`, num: 10, gl: 'us' } });
+        const hits = rowsOf(r.body, ['organic', 'results']);
+        return { result: { indexed: hits.length > 0, results: hits.length }, usd: r.usd };
+      });
+    },
+
     // Apollo's match by LinkedIn (1 credit when it finds the person); only an email Apollo itself marks verified is a find
     // Out of credits (a 402, 403 or 422 that says so) switches Apollo off for the rest of the run, not the run itself
     async apolloMatch({ linkedin, first, last, domain, jobId }) {

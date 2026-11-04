@@ -23,8 +23,7 @@ const TITLE = /\b(owner|owners|co-?owner|ceo|chief executive|founder|co-?founder
 const PRESIDENT = /\bpresident\b/i;
 export const eligibleTitle = (t) => (TITLE.test(String(t ?? '')) || PRESIDENT.test(String(t ?? ''))) && Boolean(ownerRole(t));
 // the operator approved plain "President" as an owner title (D9-6, 2026-10-29); the column still says so, for the record
-export const titleCheck = (t) => (!TITLE.test(String(t ?? '')) && PRESIDENT.test(String(t ?? '')) ? 'president (approved as owner, D9-6)'
-  : !eligibleTitle(t) ? 'not an owner by title' : '');
+export const titleCheck = (t) => (!TITLE.test(String(t ?? '')) && PRESIDENT.test(String(t ?? '')) ? 'president (approved as owner, D9-6)' : '');
 
 // an email domain that is plainly the same firm's: a subdomain of the website, the same name under another ending,
 // or a name sharing its first 6 letters (raybrownac.com for raybrownairandheat.com). Another business never is.
@@ -108,10 +107,15 @@ export async function enrichRow(row, at, { providers, jobId, index = 0 }) {
   // the list's own address counts as unverified: it gets the one check if nothing better turns up
   const own = normEmail(g('email'));
   if (own && looksLikeEmail(own)) unverified.push({ u: { email: own, near: false }, source: 'list' });
+  // the domain pre-filter (2026-11-03, free DNS): a dead website domain gets only the free Leadocean look-up by
+  // LinkedIn (the list's website can be a typo or an old one while the person's mail works on the real domain);
+  // nothing paid is spent on it
+  const site = domain && providers.domainCheck ? await providers.domainCheck(domain) : null;
   if (li) {
     const r = take(await providers.findEmail({ source: 'leadocean', name, first, last, domain, person: { owner_sources: [], linkedin_url: li }, jobId }), 'leadocean');
     if (r) return r;
   }
+  if (site?.verdict === 'dead') return end({ enrich_status: 'dead_domain', enrich_reason: `the website domain takes no mail: ${site.reason}` });
   // Apollo and Smartlead share the work: half the rows ask Apollo first, half Smartlead; the other only on a miss
   const asks = [
     async () => (li ? take(await providers.apolloMatch({ linkedin: li, first, last, domain, jobId }), 'apollo') : null),
@@ -210,12 +214,13 @@ export function loadProgress(file) {
 
 // the run: up to `limit` eligible rows not done yet; stops cleanly at a budget or the job's cap
 // redo: rows already done that the stricter first rules left without an address are run once more (first, before new rows)
-export async function runList({ input, outDir, limit, providers, jobId, states, concurrency = 4, log = () => {}, redo = false, skipHold = false, patience = {}, kitt = false, allTitles = false }) {
+// domains: a domain checker (domaincheck.mjs); with it, a dead website domain costs nothing paid
+export async function runList({ input, outDir, limit, providers, jobId, states, concurrency = 4, log = () => {}, redo = false, skipHold = false, patience = {}, kitt = false, domains = null }) {
   mkdirSync(outDir, { recursive: true });
   const { header, rows, at } = readRows(input);
   const p = paths(input, outDir);
   const done = loadProgress(p.progress);
-  const slowTools = { ...providers, findEmail: patient(providers.findEmail, { ...patience, name: 'Leadocean', log }),
+  const slowTools = { ...providers, ...(domains ? { domainCheck: (d) => domains.check(d) } : {}), findEmail: patient(providers.findEmail, { ...patience, name: 'Leadocean', log }),
     ...(providers.apolloMatch ? { apolloMatch: patient(providers.apolloMatch, { ...patience, name: 'Apollo', log }) } : {}),
     ...(providers.smartleadFind ? { smartleadFind: patient(providers.smartleadFind, { ...patience, name: 'Smartlead', log }) } : {}) };
   // Kitt looks the address up live, so it gets longer before it counts as slow
@@ -225,7 +230,7 @@ export async function runList({ input, outDir, limit, providers, jobId, states, 
   if (kitt) for (const [i, f] of done) if (todo.length < limit && kittWorthTrying(f)) todo.push(i);
   // hold-state rows can be left for later (operator, 2026-10-29): they can't be emailed until the states are cleared
   const held = (r) => skipHold && Boolean(stateOf(r[at.location], states)?.hold);
-  if (!kitt) for (let i = 0; i < rows.length && todo.length < limit; i++) if (!done.has(i) && (allTitles || eligibleTitle(rows[i][at.title])) && !held(rows[i])) todo.push(i);
+  if (!kitt) for (let i = 0; i < rows.length && todo.length < limit; i++) if (!done.has(i) && eligibleTitle(rows[i][at.title]) && !held(rows[i])) todo.push(i);
   let stopped = null, errors = 0, n = 0, inARow = 0;
   const queue = [...todo];
   const worker = async () => {

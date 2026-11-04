@@ -1,0 +1,9 @@
+{
+  "_note": "Parking and for-sale services: a nameserver or MX host on one of these domains (the host itself, or a host under it) means the domain is parked, so dead for mail (How Email Actually Works, ch. 9). Whole host names only: 'dns-parking.com' is Hostinger's ordinary DNS and 'namebrightdns.com' a registrar's ordinary DNS, so neither is here (the first live run, 2026-11-03, wrongly flagged 85 live firms on a loose word match).",
+  "patterns": [
+    "sedoparking.com", "bodis.com", "parkingcrew.net", "above.com", "abovedomains.com", "afternic.com", "dan.com",
+    "undeveloped.com", "parklogic.com", "uniregistrymarket.link", "hugedomains.com", "cashparking.com", "fabulous.com",
+    "smartname.com", "voodoo.com", "ztomy.com", "rookdns.com", "buydomains.com", "domainmarket.com", "parkingspa.com",
+    "parked.com", "trafficz.com", "dsredirection.com", "skenzo.com"
+  ]
+}
